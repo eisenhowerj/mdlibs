@@ -2,6 +2,7 @@
 name = "mdlibs"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.74"
 authors = ["mdlibs contributors"]
 description = "A markdown library and document management CLI tool"
 license = "MIT"
