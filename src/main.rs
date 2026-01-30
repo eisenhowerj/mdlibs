@@ -1,8 +1,18 @@
 use clap::{Parser, Subcommand};
 
+mod commands;
+mod config;
+
 #[derive(Parser)]
 #[command(name = "mdlibs")]
-#[command(author, version, about, long_about = None)]
+#[command(
+    author,
+    version,
+    about = "A markdown library and document management CLI tool"
+)]
+#[command(
+    long_about = "mdlibs is a command-line tool for managing collections of markdown documents.\nIt provides functionality to initialize libraries, list documents, update metadata, and search through your markdown files."
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -12,19 +22,19 @@ struct Cli {
 enum Commands {
     /// Initialize a new markdown library
     Init {
-        /// Path where to initialize the library
+        /// Path where to initialize the library (defaults to current directory)
         #[arg(default_value = ".")]
         path: String,
     },
     /// List all markdown documents in the library
     List {
-        /// Filter by tag or category
+        /// Filter documents by title or path content
         #[arg(short, long)]
         filter: Option<String>,
     },
-    /// Update metadata or content of markdown documents
+    /// Update metadata or content of a markdown document
     Update {
-        /// Document identifier
+        /// Document path or name (with or without .md extension)
         document: String,
         /// New title for the document
         #[arg(short, long)]
@@ -32,9 +42,9 @@ enum Commands {
     },
     /// Search through markdown documents
     Search {
-        /// Search query
+        /// Search query (case-insensitive)
         query: String,
-        /// Search only in titles
+        /// Search only in document titles
         #[arg(short, long)]
         title_only: bool,
     },
@@ -43,33 +53,15 @@ enum Commands {
 fn main() {
     let cli = Cli::parse();
 
-    match &cli.command {
-        Commands::Init { path } => {
-            println!("Initializing markdown library at: {}", path);
-            // TODO: Implement initialization logic
-        }
-        Commands::List { filter } => {
-            if let Some(f) = filter {
-                println!("Listing documents with filter: {}", f);
-            } else {
-                println!("Listing all documents");
-            }
-            // TODO: Implement list logic
-        }
-        Commands::Update { document, title } => {
-            println!("Updating document: {}", document);
-            if let Some(t) = title {
-                println!("  New title: {}", t);
-            }
-            // TODO: Implement update logic
-        }
-        Commands::Search { query, title_only } => {
-            if *title_only {
-                println!("Searching titles for: {}", query);
-            } else {
-                println!("Searching all content for: {}", query);
-            }
-            // TODO: Implement search logic
-        }
+    let result = match &cli.command {
+        Commands::Init { path } => commands::init::run(path),
+        Commands::List { filter } => commands::list::run(filter.as_deref()),
+        Commands::Update { document, title } => commands::update::run(document, title.as_deref()),
+        Commands::Search { query, title_only } => commands::search::run(query, *title_only),
+    };
+
+    if let Err(e) = result {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
     }
 }
