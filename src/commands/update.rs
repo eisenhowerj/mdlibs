@@ -3,6 +3,7 @@ use std::io;
 use std::path::Path;
 
 use crate::config::{LibraryConfig, DOCS_DIR, TEMPLATES_DIR};
+use crate::utils::extract_title_from_content;
 
 /// Update metadata of a markdown document
 pub fn run(document: &str, title: Option<&str>) -> io::Result<()> {
@@ -82,7 +83,7 @@ fn find_document(lib_root: &Path, document: &str) -> io::Result<std::path::PathB
 /// Display information about a document
 fn display_document_info(path: &Path) -> io::Result<()> {
     let content = fs::read_to_string(path)?;
-    let title = extract_title(&content).unwrap_or_else(|| "Untitled".to_string());
+    let title = extract_title_from_content(&content).unwrap_or_else(|| "Untitled".to_string());
     let word_count = count_words(&content);
     let line_count = content.lines().count();
 
@@ -108,22 +109,12 @@ fn update_document_title(content: &str, new_title: &str) -> String {
     }
 
     if !found_title {
-        // Prepend title if none exists
-        lines.insert(0, format!("# {}\n", new_title));
+        // Prepend title if none exists, followed by empty line
+        lines.insert(0, String::new());
+        lines.insert(0, format!("# {}", new_title));
     }
 
     lines.join("\n")
-}
-
-/// Extract the title from markdown content
-fn extract_title(content: &str) -> Option<String> {
-    for line in content.lines() {
-        let line = line.trim();
-        if let Some(title_text) = line.strip_prefix("# ") {
-            return Some(title_text.trim().to_string());
-        }
-    }
-    None
 }
 
 /// Count words in content
@@ -148,18 +139,8 @@ mod tests {
         let content = "Some content without title.";
         let result = update_document_title(content, "New Title");
         assert!(result.starts_with("# New Title"));
-    }
-
-    #[test]
-    fn test_extract_title() {
-        let content = "# My Title\n\nContent";
-        assert_eq!(extract_title(content), Some("My Title".to_string()));
-    }
-
-    #[test]
-    fn test_extract_title_none() {
-        let content = "No title here";
-        assert_eq!(extract_title(content), None);
+        // Verify the new title is followed by an empty line separator
+        assert!(result.contains("# New Title\n\n"));
     }
 
     #[test]

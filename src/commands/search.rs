@@ -3,6 +3,7 @@ use std::io;
 use std::path::Path;
 
 use crate::config::{LibraryConfig, DOCS_DIR, TEMPLATES_DIR};
+use crate::utils::{extract_title_from_content, is_markdown_file, truncate_display};
 
 /// Search result entry
 #[derive(Debug)]
@@ -39,9 +40,9 @@ pub fn run(query: &str, title_only: bool) -> io::Result<()> {
     for result in results {
         println!("📄 {} ({})", result.title, result.path);
         if !title_only {
-            for m in &result.matches {
-                let preview = truncate_line(&m.line_content, 60);
-                println!("   Line {}: {}", m.line_number, preview);
+            for match_entry in &result.matches {
+                let preview = truncate_display(&match_entry.line_content, 60);
+                println!("   Line {}: {}", match_entry.line_number, preview);
             }
         }
         println!();
@@ -115,14 +116,6 @@ fn collect_markdown_files_single(
     Ok(())
 }
 
-/// Check if a path is a markdown file
-fn is_markdown_file(path: &Path) -> bool {
-    path.extension()
-        .map(|ext| ext.to_string_lossy().to_lowercase())
-        .map(|ext| ext == "md" || ext == "markdown")
-        .unwrap_or(false)
-}
-
 /// Search within a single file
 fn search_file(
     path: &Path,
@@ -131,7 +124,7 @@ fn search_file(
     title_only: bool,
 ) -> io::Result<Option<SearchResult>> {
     let content = fs::read_to_string(path)?;
-    let title = extract_title(&content).unwrap_or_else(|| {
+    let title = extract_title_from_content(&content).unwrap_or_else(|| {
         path.file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("Untitled")
@@ -177,50 +170,10 @@ fn search_file(
     Ok(None)
 }
 
-/// Extract the title from markdown content
-fn extract_title(content: &str) -> Option<String> {
-    for line in content.lines() {
-        let line = line.trim();
-        if let Some(title_text) = line.strip_prefix("# ") {
-            return Some(title_text.trim().to_string());
-        }
-    }
-    None
-}
-
-/// Truncate a line for display
-fn truncate_line(line: &str, max_len: usize) -> String {
-    let trimmed = line.trim();
-    if trimmed.len() <= max_len {
-        trimmed.to_string()
-    } else {
-        format!("{}...", &trimmed[..max_len])
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::env;
-
-    #[test]
-    fn test_is_markdown_file() {
-        assert!(is_markdown_file(Path::new("test.md")));
-        assert!(is_markdown_file(Path::new("test.markdown")));
-        assert!(!is_markdown_file(Path::new("test.txt")));
-    }
-
-    #[test]
-    fn test_extract_title() {
-        let content = "# Test Title\n\nContent";
-        assert_eq!(extract_title(content), Some("Test Title".to_string()));
-    }
-
-    #[test]
-    fn test_truncate_line() {
-        assert_eq!(truncate_line("short", 10), "short");
-        assert_eq!(truncate_line("this is a longer line", 10), "this is a ...");
-    }
 
     #[test]
     fn test_search_file() {

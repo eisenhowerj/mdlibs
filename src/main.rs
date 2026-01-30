@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 
 mod commands;
 mod config;
+mod utils;
 
 #[derive(Parser)]
 #[command(name = "mdlibs")]

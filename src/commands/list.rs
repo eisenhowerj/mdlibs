@@ -3,6 +3,7 @@ use std::io;
 use std::path::Path;
 
 use crate::config::{LibraryConfig, DOCS_DIR, TEMPLATES_DIR};
+use crate::utils::{extract_title_from_file, is_markdown_file};
 
 /// Document entry representing a markdown file
 #[derive(Debug)]
@@ -13,7 +14,7 @@ pub struct DocumentEntry {
 }
 
 /// Type of document
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum DocumentType {
     Document,
     Template,
@@ -45,13 +46,13 @@ pub fn run(filter: Option<&str>) -> io::Result<()> {
     }
 
     // Apply filter if provided
-    let filtered_docs: Vec<&DocumentEntry> = if let Some(f) = filter {
-        let filter_lower = f.to_lowercase();
+    let filtered_docs: Vec<&DocumentEntry> = if let Some(filter_text) = filter {
+        let filter_lower = filter_text.to_lowercase();
         documents
             .iter()
-            .filter(|d| {
-                d.title.to_lowercase().contains(&filter_lower)
-                    || d.path.to_lowercase().contains(&filter_lower)
+            .filter(|doc| {
+                doc.title.to_lowercase().contains(&filter_lower)
+                    || doc.path.to_lowercase().contains(&filter_lower)
             })
             .collect()
     } else {
@@ -117,14 +118,9 @@ fn scan_directory(
         let path = entry.path();
 
         if path.is_dir() {
-            let sub_type = if doc_type == DocumentType::Template {
-                DocumentType::Template
-            } else {
-                DocumentType::Document
-            };
-            scan_directory(&path, lib_root, sub_type, documents)?;
+            scan_directory(&path, lib_root, doc_type, documents)?;
         } else if is_markdown_file(&path) {
-            if let Some(doc_entry) = create_document_entry(&path, lib_root, &doc_type) {
+            if let Some(doc_entry) = create_document_entry(&path, lib_root, doc_type) {
                 documents.push(doc_entry);
             }
         }
@@ -149,7 +145,7 @@ fn scan_single_directory(
         let path = entry.path();
 
         if path.is_file() && is_markdown_file(&path) {
-            if let Some(doc_entry) = create_document_entry(&path, lib_root, &doc_type) {
+            if let Some(doc_entry) = create_document_entry(&path, lib_root, doc_type) {
                 documents.push(doc_entry);
             }
         }
@@ -158,22 +154,14 @@ fn scan_single_directory(
     Ok(())
 }
 
-/// Check if a path is a markdown file
-fn is_markdown_file(path: &Path) -> bool {
-    path.extension()
-        .map(|ext| ext.to_string_lossy().to_lowercase())
-        .map(|ext| ext == "md" || ext == "markdown")
-        .unwrap_or(false)
-}
-
 /// Create a document entry from a file path
 fn create_document_entry(
     path: &Path,
     lib_root: &Path,
-    doc_type: &DocumentType,
+    doc_type: DocumentType,
 ) -> Option<DocumentEntry> {
     let relative_path = path.strip_prefix(lib_root).ok()?;
-    let title = extract_title(path).unwrap_or_else(|| {
+    let title = extract_title_from_file(path).unwrap_or_else(|| {
         path.file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("Untitled")
@@ -183,57 +171,13 @@ fn create_document_entry(
     Some(DocumentEntry {
         path: relative_path.to_string_lossy().to_string(),
         title,
-        doc_type: if *doc_type == DocumentType::Template {
-            DocumentType::Template
-        } else {
-            DocumentType::Document
-        },
+        doc_type,
     })
-}
-
-/// Extract title from markdown file (first H1 heading or filename)
-fn extract_title(path: &Path) -> Option<String> {
-    let content = fs::read_to_string(path).ok()?;
-
-    for line in content.lines() {
-        let line = line.trim();
-        if let Some(title_text) = line.strip_prefix("# ") {
-            return Some(title_text.trim().to_string());
-        }
-    }
-
-    None
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env;
-
-    #[test]
-    fn test_is_markdown_file() {
-        assert!(is_markdown_file(Path::new("test.md")));
-        assert!(is_markdown_file(Path::new("test.markdown")));
-        assert!(is_markdown_file(Path::new("test.MD")));
-        assert!(!is_markdown_file(Path::new("test.txt")));
-        assert!(!is_markdown_file(Path::new("test")));
-    }
-
-    #[test]
-    fn test_extract_title() {
-        let temp_dir = env::temp_dir().join("mdlibs_test_list");
-        let _ = fs::remove_dir_all(&temp_dir);
-        fs::create_dir_all(&temp_dir).unwrap();
-
-        let test_file = temp_dir.join("test.md");
-        fs::write(&test_file, "# My Title\n\nContent here").unwrap();
-
-        let title = extract_title(&test_file);
-        assert_eq!(title, Some("My Title".to_string()));
-
-        // Cleanup
-        let _ = fs::remove_dir_all(&temp_dir);
-    }
 
     #[test]
     fn test_document_type_display() {
