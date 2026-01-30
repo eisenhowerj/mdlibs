@@ -1,10 +1,12 @@
 # mdlibs
 
-A markdown library and document management CLI tool written in Rust.
+A markdown library and document management CLI tool with self-hosted registry support, written in Rust.
 
 ## Overview
 
 `mdlibs` is a command-line tool for managing collections of markdown documents. It provides functionality to initialize libraries, list documents, update metadata, and search through your markdown files.
+
+**New in Phase 3**: Self-hosted registry support for publishing and sharing markdown libraries within organizations.
 
 ## Installation
 
@@ -77,17 +79,91 @@ mdlibs search "rust programming"
 mdlibs search "tutorial" --title-only
 ```
 
+## Self-Hosted Registry (Phase 3)
+
+mdlibs now includes a self-hosted registry server for enterprise and corporate usage. The registry enables teams to:
+
+- **Publish** markdown libraries to a centralized repository
+- **Search** and discover libraries across your organization
+- **Install** libraries directly from the registry
+- **Collaborate** with team-based library scoping
+- **Track** usage and download analytics
+
+### Quick Start with Registry
+
+1. **Deploy the registry** using Docker Compose:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+docker-compose up -d
+```
+
+2. **Configure the CLI** to use your registry:
+```bash
+mdlibs login https://registry.example.com
+```
+
+3. **Publish a library**:
+```bash
+mdlibs publish
+```
+
+4. **Search and install**:
+```bash
+mdlibs search documentation
+mdlibs install @user/my-docs
+```
+
+### Registry Documentation
+
+- **[Requirements](docs/registry/REQUIREMENTS.md)** - Functional and non-functional requirements
+- **[Architecture](docs/registry/ARCHITECTURE.md)** - System architecture and design decisions
+- **[API Specification](docs/registry/API.md)** - Complete REST API documentation
+- **[Deployment Guide](docs/registry/DEPLOYMENT.md)** - How to deploy the registry
+- **[CLI Integration](docs/registry/CLI_INTEGRATION.md)** - Using the CLI with the registry
+- **[MVP Plan](docs/registry/MVP_PLAN.md)** - Development roadmap and timeline
+
+### Registry Features
+
+#### MVP (v1.0) - In Progress
+- ✅ Requirements and architecture design
+- ✅ API specification
+- ✅ Deployment infrastructure (Docker)
+- 🔄 User authentication and API tokens
+- 🔄 Library publishing and downloading
+- 🔄 Search and discovery
+- 🔄 CLI integration
+
+#### Planned (v1.1+)
+- Team support and collaboration
+- Advanced analytics and reporting
+- OAuth2/OIDC integration
+- S3-compatible storage backend
+- Web UI for registry management
+
 ## Development
 
-### Building
+### Building the CLI
 
 ```bash
 cargo build
 ```
 
+### Building the Registry
+
+```bash
+cd registry
+cargo build --release
+```
+
 ### Running tests
 
 ```bash
+# Test CLI
+cargo test
+
+# Test Registry
+cd registry
 cargo test
 ```
 
@@ -95,6 +171,15 @@ cargo test
 
 ```bash
 cargo run -- <command> [args]
+```
+
+### Running the Registry Locally
+
+```bash
+cd registry
+export DATABASE_URL=sqlite:///tmp/mdlibs.db
+export JWT_SECRET=$(openssl rand -base64 32)
+cargo run
 ```
 
 ## License

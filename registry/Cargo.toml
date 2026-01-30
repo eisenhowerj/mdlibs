@@ -1,0 +1,53 @@
+[package]
+name = "mdlibs-registry"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.74"
+authors = ["mdlibs contributors"]
+description = "Self-hosted registry server for mdlibs markdown libraries"
+license = "MIT"
+repository = "https://github.com/eisenhowerj/mdlibs"
+
+[dependencies]
+# Web framework
+actix-web = "4.5"
+actix-multipart = "0.6"
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "postgres", "sqlite", "uuid", "chrono", "migrate"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Authentication
+argon2 = "0.5"
+jsonwebtoken = "9.2"
+
+# Configuration
+config = "0.14"
+dotenv = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Date/time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# File handling
+tar = "0.4"
+flate2 = "1.0"
+sha2 = "0.10"
+
+[dev-dependencies]
+# Testing
+reqwest = { version = "0.11", features = ["json"] }

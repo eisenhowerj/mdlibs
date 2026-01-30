@@ -15,3 +15,12 @@ Thumbs.db
 # Test coverage
 *.profraw
 *.profdata
+
+# Environment and secrets
+.env
+*.db
+*.db-shm
+*.db-wal
+
+# Registry storage
+/storage

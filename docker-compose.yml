@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  registry:
+    image: mdlibs/registry:latest
+    container_name: mdlibs-registry
+    restart: unless-stopped
+    ports:
+      - "${REGISTRY_PORT:-8080}:8080"
+    environment:
+      - REGISTRY_HOST=0.0.0.0
+      - REGISTRY_PORT=8080
+      - REGISTRY_URL=${REGISTRY_URL:-http://localhost:8080}
+      - DATABASE_URL=${DATABASE_URL:-postgres://mdlibs:secret@postgres:5432/mdlibs}
+      - STORAGE_PATH=/var/lib/mdlibs/storage
+      - STORAGE_MAX_FILE_SIZE_MB=${STORAGE_MAX_FILE_SIZE_MB:-100}
+      - JWT_SECRET=${JWT_SECRET}
+      - TOKEN_EXPIRY_DAYS=${TOKEN_EXPIRY_DAYS:-90}
+      - RATE_LIMIT_ANON=${RATE_LIMIT_ANON:-60}
+      - RATE_LIMIT_AUTH=${RATE_LIMIT_AUTH:-5000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    volumes:
+      - registry-storage:/var/lib/mdlibs/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - mdlibs-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: mdlibs-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-mdlibs}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secret}
+      - POSTGRES_DB=${POSTGRES_DB:-mdlibs}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mdlibs}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mdlibs-network
+
+volumes:
+  registry-storage:
+    driver: local
+  postgres-data:
+    driver: local
+
+networks:
+  mdlibs-network:
+    driver: bridge
