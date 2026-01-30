@@ -114,7 +114,9 @@ fn update_document_title(content: &str, new_title: &str) -> String {
         lines.insert(0, format!("# {}", new_title));
     }
 
-    lines.join("\n")
+    let mut result = lines.join("\n");
+    result.push('\n');
+    result
 }
 
 /// Count words in content
