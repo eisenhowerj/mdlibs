@@ -1,5 +1,6 @@
 # Rust build artifacts
 /target
+/registry/target
 
 # IDE files
 .idea/
@@ -24,3 +25,6 @@ Thumbs.db
 
 # Registry storage
 /storage
+
+# Cargo lock (keep only in workspace root)
+/registry/Cargo.lock
