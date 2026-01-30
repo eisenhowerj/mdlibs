@@ -21,7 +21,7 @@ Please be respectful and constructive in all interactions. We aim to maintain a 
 
 ### Prerequisites
 
-- Rust 1.70 or higher
+- Rust 1.56 or higher (for Rust 2021 edition)
 - Cargo (comes with Rust)
 
 ### Building the Project
