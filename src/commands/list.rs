@@ -178,10 +178,86 @@ fn create_document_entry(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
 
     #[test]
     fn test_document_type_display() {
         assert_eq!(format!("{}", DocumentType::Document), "doc");
         assert_eq!(format!("{}", DocumentType::Template), "template");
+    }
+
+    #[test]
+    fn test_collect_documents() {
+        let temp_dir = env::temp_dir().join("mdlibs_test_list_collect");
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        // Create directory structure
+        let docs_dir = temp_dir.join("docs");
+        let templates_dir = temp_dir.join("templates");
+        fs::create_dir_all(&docs_dir).unwrap();
+        fs::create_dir_all(&templates_dir).unwrap();
+
+        // Create test files
+        fs::write(docs_dir.join("doc1.md"), "# Document One\n\nContent").unwrap();
+        fs::write(docs_dir.join("doc2.md"), "# Document Two\n\nContent").unwrap();
+        fs::write(templates_dir.join("tmpl.md"), "# Template\n\nContent").unwrap();
+
+        let documents = collect_documents(&temp_dir).unwrap();
+
+        assert_eq!(documents.len(), 3);
+
+        // Verify we have both docs and templates
+        let doc_count = documents
+            .iter()
+            .filter(|d| d.doc_type == DocumentType::Document)
+            .count();
+        let tmpl_count = documents
+            .iter()
+            .filter(|d| d.doc_type == DocumentType::Template)
+            .count();
+        assert_eq!(doc_count, 2);
+        assert_eq!(tmpl_count, 1);
+
+        // Cleanup
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_create_document_entry() {
+        let temp_dir = env::temp_dir().join("mdlibs_test_list_entry");
+        let _ = fs::remove_dir_all(&temp_dir);
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        let test_file = temp_dir.join("test.md");
+        fs::write(&test_file, "# Test Title\n\nContent").unwrap();
+
+        let entry = create_document_entry(&test_file, &temp_dir, DocumentType::Document);
+        assert!(entry.is_some());
+        let entry = entry.unwrap();
+        assert_eq!(entry.title, "Test Title");
+        assert_eq!(entry.path, "test.md");
+        assert_eq!(entry.doc_type, DocumentType::Document);
+
+        // Cleanup
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_create_document_entry_no_title() {
+        let temp_dir = env::temp_dir().join("mdlibs_test_list_no_title");
+        let _ = fs::remove_dir_all(&temp_dir);
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        let test_file = temp_dir.join("notitle.md");
+        fs::write(&test_file, "Content without title").unwrap();
+
+        let entry = create_document_entry(&test_file, &temp_dir, DocumentType::Document);
+        assert!(entry.is_some());
+        let entry = entry.unwrap();
+        // Should use filename as title when no H1 heading exists
+        assert_eq!(entry.title, "notitle");
+
+        // Cleanup
+        let _ = fs::remove_dir_all(&temp_dir);
     }
 }

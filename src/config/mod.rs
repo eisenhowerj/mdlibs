@@ -42,13 +42,16 @@ impl LibraryConfig {
 
     /// Generate the config file content as TOML format
     pub fn to_toml(&self) -> String {
+        // Escape special characters in TOML string values
+        let escaped_name = self.name.replace('\\', "\\\\").replace('"', "\\\"");
+        let escaped_version = self.version.replace('\\', "\\\\").replace('"', "\\\"");
         format!(
             r#"# mdlibs configuration file
 [library]
 name = "{}"
 version = "{}"
 "#,
-            self.name, self.version
+            escaped_name, escaped_version
         )
     }
 
@@ -74,13 +77,21 @@ version = "{}"
 
         for line in content.lines() {
             let line = line.trim();
-            if line.starts_with("name") {
-                if let Some(value) = Self::extract_toml_value(line) {
-                    name = value;
-                }
-            } else if line.starts_with("version") {
-                if let Some(value) = Self::extract_toml_value(line) {
-                    version = value;
+            // Skip comments and empty lines
+            if line.is_empty() || line.starts_with('#') || line.starts_with('[') {
+                continue;
+            }
+            // Check for exact key match (key = value format)
+            if let Some((key, _)) = line.split_once('=') {
+                let key = key.trim();
+                if key == "name" {
+                    if let Some(value) = Self::extract_toml_value(line) {
+                        name = value;
+                    }
+                } else if key == "version" {
+                    if let Some(value) = Self::extract_toml_value(line) {
+                        version = value;
+                    }
                 }
             }
         }
@@ -180,5 +191,37 @@ version = "2.0.0"
         let config = LibraryConfig::parse_toml(content, Path::new(".")).unwrap();
         assert_eq!(config.name, "my-library");
         assert_eq!(config.version, "2.0.0");
+    }
+
+    #[test]
+    fn test_parse_toml_ignores_comments() {
+        let content = r#"
+# This is a comment
+# name = "commented-out"
+[library]
+name = "actual-name"
+version = "1.0.0"
+"#;
+        let config = LibraryConfig::parse_toml(content, Path::new(".")).unwrap();
+        assert_eq!(config.name, "actual-name");
+    }
+
+    #[test]
+    fn test_parse_toml_exact_key_match() {
+        let content = r#"
+[library]
+other_name = "wrong"
+name = "correct"
+version = "1.0.0"
+"#;
+        let config = LibraryConfig::parse_toml(content, Path::new(".")).unwrap();
+        assert_eq!(config.name, "correct");
+    }
+
+    #[test]
+    fn test_to_toml_escapes_special_chars() {
+        let config = LibraryConfig::new("test\"lib", PathBuf::from("."));
+        let toml = config.to_toml();
+        assert!(toml.contains("name = \"test\\\"lib\""));
     }
 }

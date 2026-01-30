@@ -22,12 +22,14 @@ pub fn run(path: &str) -> io::Result<()> {
     }
 
     // Create configuration file
+    // Use canonicalize to get the actual directory name for "." or relative paths
     let lib_name = lib_path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("mdlibs");
+        .canonicalize()
+        .ok()
+        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+        .unwrap_or_else(|| "mdlibs".to_string());
 
-    let config = LibraryConfig::new(lib_name, lib_path.to_path_buf());
+    let config = LibraryConfig::new(&lib_name, lib_path.to_path_buf());
     fs::write(&config_path, config.to_toml())?;
     println!("Created configuration file: {}", config_path.display());
 

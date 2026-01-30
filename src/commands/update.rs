@@ -3,7 +3,7 @@ use std::io;
 use std::path::Path;
 
 use crate::config::{LibraryConfig, DOCS_DIR, TEMPLATES_DIR};
-use crate::utils::extract_title_from_content;
+use crate::utils::{extract_title_from_content, is_markdown_file};
 
 /// Update metadata of a markdown document
 pub fn run(document: &str, title: Option<&str>) -> io::Result<()> {
@@ -38,22 +38,46 @@ pub fn run(document: &str, title: Option<&str>) -> io::Result<()> {
 
 /// Find a document by name or path
 fn find_document(lib_root: &Path, document: &str) -> io::Result<std::path::PathBuf> {
+    // Helper to validate path is within library and is a markdown file
+    let validate_path = |path: &Path| -> io::Result<std::path::PathBuf> {
+        let canonical = path.canonicalize()?;
+        let lib_canonical = lib_root.canonicalize()?;
+
+        // Check path is within library root (prevent path traversal)
+        if !canonical.starts_with(&lib_canonical) {
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "Access denied: path is outside the library directory",
+            ));
+        }
+
+        // Validate it's a markdown file
+        if !is_markdown_file(&canonical) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("Not a markdown file: {}", path.display()),
+            ));
+        }
+
+        Ok(canonical)
+    };
+
     // Try direct path first
     let direct_path = lib_root.join(document);
     if direct_path.exists() {
-        return Ok(direct_path);
+        return validate_path(&direct_path);
     }
 
     // Try in docs directory
     let docs_path = lib_root.join(DOCS_DIR).join(document);
     if docs_path.exists() {
-        return Ok(docs_path);
+        return validate_path(&docs_path);
     }
 
     // Try in templates directory
     let templates_path = lib_root.join(TEMPLATES_DIR).join(document);
     if templates_path.exists() {
-        return Ok(templates_path);
+        return validate_path(&templates_path);
     }
 
     // Try adding .md extension
@@ -61,17 +85,17 @@ fn find_document(lib_root: &Path, document: &str) -> io::Result<std::path::PathB
 
     let direct_with_ext = lib_root.join(&with_ext);
     if direct_with_ext.exists() {
-        return Ok(direct_with_ext);
+        return validate_path(&direct_with_ext);
     }
 
     let docs_with_ext = lib_root.join(DOCS_DIR).join(&with_ext);
     if docs_with_ext.exists() {
-        return Ok(docs_with_ext);
+        return validate_path(&docs_with_ext);
     }
 
     let templates_with_ext = lib_root.join(TEMPLATES_DIR).join(&with_ext);
     if templates_with_ext.exists() {
-        return Ok(templates_with_ext);
+        return validate_path(&templates_with_ext);
     }
 
     Err(io::Error::new(
@@ -97,6 +121,9 @@ fn display_document_info(path: &Path) -> io::Result<()> {
 
 /// Update the title (first H1 heading) in a markdown document
 fn update_document_title(content: &str, new_title: &str) -> String {
+    // Preserve whether the original content ended with a newline
+    let had_trailing_newline = content.ends_with('\n');
+
     let mut lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
     let mut found_title = false;
 
@@ -115,7 +142,10 @@ fn update_document_title(content: &str, new_title: &str) -> String {
     }
 
     let mut result = lines.join("\n");
-    result.push('\n');
+    // Preserve the original trailing newline behavior
+    if had_trailing_newline {
+        result.push('\n');
+    }
     result
 }
 
@@ -143,6 +173,30 @@ mod tests {
         assert!(result.starts_with("# New Title"));
         // Verify the new title is followed by an empty line separator
         assert!(result.contains("# New Title\n\n"));
+    }
+
+    #[test]
+    fn test_update_document_title_preserves_no_trailing_newline() {
+        let content = "# Old Title\n\nContent without trailing newline";
+        let result = update_document_title(content, "New Title");
+        assert!(!result.ends_with('\n'));
+    }
+
+    #[test]
+    fn test_update_document_title_preserves_trailing_newline() {
+        let content = "# Old Title\n\nContent with trailing newline\n";
+        let result = update_document_title(content, "New Title");
+        assert!(result.ends_with('\n'));
+        // Should not have double newline
+        assert!(!result.ends_with("\n\n"));
+    }
+
+    #[test]
+    fn test_update_document_title_new_no_trailing_newline() {
+        let content = "Content without title or trailing newline";
+        let result = update_document_title(content, "New Title");
+        // Adding a new title should not add trailing newline if original didn't have one
+        assert!(!result.ends_with('\n'));
     }
 
     #[test]

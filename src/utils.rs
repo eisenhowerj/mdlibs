@@ -14,7 +14,11 @@ pub fn extract_title_from_content(content: &str) -> Option<String> {
     for line in content.lines() {
         let line = line.trim();
         if let Some(title_text) = line.strip_prefix("# ") {
-            return Some(title_text.trim().to_string());
+            let trimmed_title = title_text.trim();
+            // Return None if the title is empty or whitespace-only
+            if !trimmed_title.is_empty() {
+                return Some(trimmed_title.to_string());
+            }
         }
     }
     None
@@ -63,6 +67,13 @@ mod tests {
     #[test]
     fn test_extract_title_from_content_none() {
         let content = "No title here";
+        assert_eq!(extract_title_from_content(content), None);
+    }
+
+    #[test]
+    fn test_extract_title_from_content_empty() {
+        // Empty title should return None
+        let content = "# \n\nContent";
         assert_eq!(extract_title_from_content(content), None);
     }
 
