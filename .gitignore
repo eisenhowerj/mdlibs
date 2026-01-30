@@ -1,5 +1,6 @@
 # Rust build artifacts
 /target
+/registry/target
 
 # IDE files
 .idea/
@@ -15,3 +16,15 @@ Thumbs.db
 # Test coverage
 *.profraw
 *.profdata
+
+# Environment and secrets
+.env
+*.db
+*.db-shm
+*.db-wal
+
+# Registry storage
+/storage
+
+# Cargo lock (keep only in workspace root)
+/registry/Cargo.lock
