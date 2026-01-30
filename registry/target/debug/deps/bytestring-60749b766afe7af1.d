@@ -1,0 +1,7 @@
+/home/runner/work/mdlibs/mdlibs/registry/target/debug/deps/bytestring-60749b766afe7af1.d: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytestring-1.5.0/src/lib.rs
+
+/home/runner/work/mdlibs/mdlibs/registry/target/debug/deps/libbytestring-60749b766afe7af1.rlib: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytestring-1.5.0/src/lib.rs
+
+/home/runner/work/mdlibs/mdlibs/registry/target/debug/deps/libbytestring-60749b766afe7af1.rmeta: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytestring-1.5.0/src/lib.rs
+
+/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytestring-1.5.0/src/lib.rs:
