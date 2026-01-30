@@ -1,0 +1,12 @@
+[package]
+name = "mdlibs"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74"
+authors = ["mdlibs contributors"]
+description = "A markdown library and document management CLI tool"
+license = "MIT"
+repository = "https://github.com/eisenhowerj/mdlibs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
